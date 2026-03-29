@@ -583,7 +583,8 @@ export class Client {
   /**
    * List objects in the bucket, optionally filtered by the given key prefix.
    *
-   * This returns a flat list; use listObjectsGrouped() for more advanced behavior.
+   * This returns a flat list; use `listObjectsGrouped()` for more advanced behavior,
+   * such as grouping or pagination.
    */
   public async *listObjects(
     options: {
@@ -611,13 +612,28 @@ export class Client {
   }
 
   /**
-   * List objects in the bucket, grouped based on the specified "delimiter".
+   * List objects in the bucket, optionally grouped based on the specified "delimiter".
    *
-   * See https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html
+   * See https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html for
+   * details on using a delimiter.
+   *
+   * To retrieve results page by page with this generator, you cannot use `for await`.
+   * Instead, call this with a helper function like the following:
+   * ```
+   * async function retrievePage(continuationToken?: string) {
+   *   const pageSize = 10;
+   *   const iterator = client.listObjectsGrouped({ continuationToken, pageSize, maxResults: pageSize });
+   *   const page: S3Object[] = [];
+   *   let r: IteratorResult<S3Object | S3CommonPrefix, string | undefined>;
+   *   while (!(r = await iterator.next()).done) { if (r.value.type === "Object") page.push(r.value); }
+   *   // Once the iterator is 'done', r.value will have the continuation token.
+   *   return { page, continuationToken: r.value };
+   * }
+   * ```
    */
   public async *listObjectsGrouped(
     options: {
-      delimiter: string;
+      delimiter?: string;
       prefix?: string;
       bucketName?: string;
       /** Don't return more than this many results in total. Default: unlimited. */
@@ -625,13 +641,14 @@ export class Client {
       /**
        * How many keys to retrieve per HTTP request (default: 1000)
        * This is a maximum; sometimes fewer keys will be returned.
-       * This will not affect the shape of the result, just its efficiency.
        */
       pageSize?: number;
+      /** Retrieve results from later pages using this continuation token. */
+      continuationToken?: string;
     },
-  ): AsyncGenerator<S3Object | CommonPrefix, void, undefined> {
+  ): AsyncGenerator<S3Object | CommonPrefix, string | undefined, undefined> {
     const bucketName = this.getBucketName(options);
-    let continuationToken = "";
+    let continuationToken = options.continuationToken ?? "";
     const pageSize = options.pageSize ?? 1_000;
     if (pageSize < 1 || pageSize > 1_000) {
       throw new errors.InvalidArgumentError("pageSize must be between 1 and 1,000.");
@@ -652,7 +669,7 @@ export class Client {
         query: {
           "list-type": "2",
           prefix: options.prefix ?? "",
-          delimiter: options.delimiter,
+          delimiter: options.delimiter ?? "",
           "max-keys": String(maxKeys),
           ...(continuationToken ? { "continuation-token": continuationToken } : {}),
         },
@@ -707,6 +724,11 @@ export class Client {
           throw new Error("Unexpectedly missing continuation token, but server said there are more results.");
         }
         continuationToken = nextContinuationToken;
+        if (options.maxResults && resultCount >= options.maxResults) {
+          // We returned the maximum number of results.
+          // Don't retrieve any more results for now; stop iteration and return the continuationToken.
+          return continuationToken;
+        }
       } else {
         // That's it, no more results.
         return;

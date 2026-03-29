@@ -7,7 +7,7 @@ import { assert } from "@std/assert/assert";
 import { assertEquals } from "@std/assert/equals";
 import { assertInstanceOf } from "@std/assert/instance-of";
 import { assertRejects } from "@std/assert/rejects";
-import { S3Client, S3Errors } from "./mod.ts";
+import { S3Client, type S3CommonPrefix, S3Errors, type S3Object } from "./mod.ts";
 
 const config = {
   endPoint: "http://localhost:9000",
@@ -439,6 +439,123 @@ Deno.test({
     assertEquals(results[3].prefix, `${prefix}subpath-2/`);
     assert(results[4].type === "Object");
     assertEquals(results[4].key, `${prefix}x-file.txt`);
+  },
+});
+
+Deno.test({
+  name: "listObjectsGrouped() can retrieve results page by page (partial final page)",
+  fn: async () => {
+    const prefix = "list-objects-test-4/";
+    // Create folder1 with 25 entries
+    for (let i = 1; i <= 25; i++) {
+      await client.putObject(`${prefix}folder1/file-${i.toString().padStart(3, "0")}.txt`, `file ${i} contents`);
+    }
+
+    // Retrieve the first page only:
+    async function retrievePage(continuationToken?: string) {
+      const iterator = client.listObjectsGrouped({ continuationToken, prefix, pageSize: 10, maxResults: 10 });
+      const page: S3Object[] = [];
+      let r: IteratorResult<S3Object | S3CommonPrefix, string | undefined>;
+      while (!(r = await iterator.next()).done) if (r.value.type === "Object") page.push(r.value);
+      return { page, continuationToken: r.value };
+    }
+
+    const page1 = await retrievePage();
+    assertEquals(page1.page.map((k) => k.key), [
+      `${prefix}folder1/file-001.txt`,
+      `${prefix}folder1/file-002.txt`,
+      `${prefix}folder1/file-003.txt`,
+      `${prefix}folder1/file-004.txt`,
+      `${prefix}folder1/file-005.txt`,
+      `${prefix}folder1/file-006.txt`,
+      `${prefix}folder1/file-007.txt`,
+      `${prefix}folder1/file-008.txt`,
+      `${prefix}folder1/file-009.txt`,
+      `${prefix}folder1/file-010.txt`,
+    ]);
+
+    const page2 = await retrievePage(page1.continuationToken);
+    assertEquals(page2.page.map((k) => k.key), [
+      `${prefix}folder1/file-011.txt`,
+      `${prefix}folder1/file-012.txt`,
+      `${prefix}folder1/file-013.txt`,
+      `${prefix}folder1/file-014.txt`,
+      `${prefix}folder1/file-015.txt`,
+      `${prefix}folder1/file-016.txt`,
+      `${prefix}folder1/file-017.txt`,
+      `${prefix}folder1/file-018.txt`,
+      `${prefix}folder1/file-019.txt`,
+      `${prefix}folder1/file-020.txt`,
+    ]);
+
+    const page3 = await retrievePage(page2.continuationToken);
+    assertEquals(page3.page.map((k) => k.key), [
+      `${prefix}folder1/file-021.txt`,
+      `${prefix}folder1/file-022.txt`,
+      `${prefix}folder1/file-023.txt`,
+      `${prefix}folder1/file-024.txt`,
+      `${prefix}folder1/file-025.txt`,
+    ]);
+    assertEquals(page3.continuationToken, undefined);
+
+    // Cleanup:
+    for await (const r of client.listObjects({ prefix })) {
+      await client.deleteObject(r.key);
+    }
+  },
+});
+
+Deno.test({
+  name: "listObjectsGrouped() can retrieve results page by page (full final page)",
+  fn: async () => {
+    const prefix = "list-objects-test-5/";
+    // Create folder1 with 20 entries
+    for (let i = 1; i <= 20; i++) {
+      await client.putObject(`${prefix}folder1/file-${i.toString().padStart(3, "0")}.txt`, `file ${i} contents`);
+    }
+
+    // Retrieve the first page only:
+    async function retrievePage(continuationToken?: string) {
+      const iterator = client.listObjectsGrouped({ continuationToken, prefix, pageSize: 10, maxResults: 10 });
+      const page: S3Object[] = [];
+      let r: IteratorResult<S3Object | S3CommonPrefix, string | undefined>;
+      while (!(r = await iterator.next()).done) if (r.value.type === "Object") page.push(r.value);
+      return { page, continuationToken: r.value };
+    }
+
+    const page1 = await retrievePage();
+    assertEquals(page1.page.map((k) => k.key), [
+      `${prefix}folder1/file-001.txt`,
+      `${prefix}folder1/file-002.txt`,
+      `${prefix}folder1/file-003.txt`,
+      `${prefix}folder1/file-004.txt`,
+      `${prefix}folder1/file-005.txt`,
+      `${prefix}folder1/file-006.txt`,
+      `${prefix}folder1/file-007.txt`,
+      `${prefix}folder1/file-008.txt`,
+      `${prefix}folder1/file-009.txt`,
+      `${prefix}folder1/file-010.txt`,
+    ]);
+
+    const page2 = await retrievePage(page1.continuationToken);
+    assertEquals(page2.page.map((k) => k.key), [
+      `${prefix}folder1/file-011.txt`,
+      `${prefix}folder1/file-012.txt`,
+      `${prefix}folder1/file-013.txt`,
+      `${prefix}folder1/file-014.txt`,
+      `${prefix}folder1/file-015.txt`,
+      `${prefix}folder1/file-016.txt`,
+      `${prefix}folder1/file-017.txt`,
+      `${prefix}folder1/file-018.txt`,
+      `${prefix}folder1/file-019.txt`,
+      `${prefix}folder1/file-020.txt`,
+    ]);
+    assertEquals(page2.continuationToken, undefined);
+
+    // Cleanup:
+    for await (const r of client.listObjects({ prefix })) {
+      await client.deleteObject(r.key);
+    }
   },
 });
 
