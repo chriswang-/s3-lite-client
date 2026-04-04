@@ -48,6 +48,8 @@ Supported functionality:
 
 [![JSR Version](https://jsr.io/badges/@bradenmacdonald/s3-lite-client)](https://jsr.io/@bradenmacdonald/s3-lite-client)
 [![JSR Score](https://jsr.io/badges/@bradenmacdonald/s3-lite-client/score)](https://jsr.io/@bradenmacdonald/s3-lite-client/score)
+[![JSR Downloads](https://jsr.io/badges/@bradenmacdonald/s3-lite-client/total-downloads)](https://jsr.io/@bradenmacdonald/s3-lite-client)
+![NPM Version](https://img.shields.io/npm/v/%40bradenmacdonald%2Fs3-lite-client)
 
 - Deno: `deno add @bradenmacdonald/s3-lite-client`
 - Deno (no install): `import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client@0.9.6";`
