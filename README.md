@@ -1,19 +1,28 @@
 # s3-lite-client
 
+![MIT License](https://img.shields.io/npm/l/%40bradenmacdonald%2Fs3-lite-client)
+[![no dependencies](https://depx.co/api/badge/@bradenmacdonald/s3-lite-client)](https://depx.co/pkg/@bradenmacdonald/s3-lite-client)
+[![minimized gzipped size](https://img.shields.io/bundlejs/size/%40bradenmacdonald%2Fs3-lite-client)](https://bundlejs.com/?q=%40bradenmacdonald%2Fs3-lite-client&treeshake=%5B*%5D&text=%22const+s3client+%3D+new+S3Client%28%7B%5Cn++endPoint%3A+%5C%22https%3A%2F%2Fs3.us-east-1.amazonaws.com%5C%22%2C%5Cn++region%3A+%5C%22us-east-1%5C%22%2C%5Cn++bucket%3A+%5C%22openalex%5C%22%2C%5Cn%7D%29%3B%5Cn%5Cn%2F%2F+Log+data+about+each+object+found+under+the+%27data%2Fconcepts%2F%27+prefix%3A%5Cnfor+await+%28const+obj+of+s3client.listObjects%28%7B+prefix%3A+%5C%22data%2Fconcepts%2F%5C%22+%7D%29%29+%7B%5Cn++console.log%28obj%29%3B%5Cn%7D%22)
+[![JSR Version](https://jsr.io/badges/@bradenmacdonald/s3-lite-client)](https://jsr.io/@bradenmacdonald/s3-lite-client)
+[![JSR Downloads](https://jsr.io/badges/@bradenmacdonald/s3-lite-client/total-downloads)](https://jsr.io/@bradenmacdonald/s3-lite-client)
+[![NPM Version](https://img.shields.io/npm/v/%40bradenmacdonald%2Fs3-lite-client)](https://www.npmjs.com/package/@bradenmacdonald/s3-lite-client)
+
 This is a lightweight S3 (object storage) client for JavaScript runtimes (Deno, Node 19+, Bun, browsers, etc.). It is
-designed to offer all the key features you may need, without bloat. It should work with any runtime that supports the
-`fetch` API, web streams API, and ES modules (ESM).
+designed to offer all the key features you may need, without bloat. It should work with any JavaScript runtime that
+supports the `fetch` API, web streams API, and ES modules (ESM).
 
-Key features:
+**Key features**:
 
-- Has no dependencies and minifies to about 21kB (< 8 kB gzipped).
+- Has **no dependencies** and minifies to about 21kB (< 8 kB gzipped).
   - For comparison, the official `@aws-sdk/client-s3` has
     [56 dependencies and weighs 399 kB (94 kB gzipped)](https://bundlephobia.com/package/@aws-sdk/client-s3@3.758.0) at
     the time of writing.
+- Works with any S3-compatible storage service: AWS S3, MinIO, Cloudflare R2, Backblaze B2, DigitalOcean Spaces,
+  Supabase storage, etc.
 - Implemented in TypeScript and fully typed.
 - 100% MIT licensed, derived from the excellent [MinIO JavaScript Client](https://github.com/minio/minio-js).
 
-Supported functionality:
+## Supported functionality
 
 - Authenticated or unauthenticated requests
 - List objects: `for await (const object of client.listObjects(options)) { ... }`
@@ -45,11 +54,6 @@ Supported functionality:
 - Remove a bucket: `client.removeBucket("bucketName")`
 
 ## Installation
-
-[![JSR Version](https://jsr.io/badges/@bradenmacdonald/s3-lite-client)](https://jsr.io/@bradenmacdonald/s3-lite-client)
-[![JSR Score](https://jsr.io/badges/@bradenmacdonald/s3-lite-client/score)](https://jsr.io/@bradenmacdonald/s3-lite-client/score)
-[![JSR Downloads](https://jsr.io/badges/@bradenmacdonald/s3-lite-client/total-downloads)](https://jsr.io/@bradenmacdonald/s3-lite-client)
-![NPM Version](https://img.shields.io/npm/v/%40bradenmacdonald%2Fs3-lite-client)
 
 - Deno: `deno add @bradenmacdonald/s3-lite-client`
 - Deno (no install): `import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client@0.9.6";`
