@@ -23,6 +23,8 @@ export interface ClientOptions {
   secretKey?: string;
   /** If using temporary credentials, a session token is required. Otherwise you don't need this. */
   sessionToken?: string;
+  /** Bearer token to use for Authorization header instead of AWS SigV4 credentials. */
+  bearerToken?: string;
   /** Default bucket name, if not specified on individual requests */
   bucket?: string;
   /** Region to use, e.g. "us-east-1" */
@@ -187,6 +189,7 @@ export class Client {
   readonly accessKey?: string;
   readonly #secretKey: string;
   readonly sessionToken?: string;
+  readonly bearerToken?: string;
   readonly defaultBucket: string | undefined;
   readonly region: string;
   readonly userAgent = "s3-lite-client";
@@ -229,6 +232,11 @@ export class Client {
     }
 
     // Validate credentials
+    if (params.bearerToken && (params.accessKey || params.secretKey || params.sessionToken)) {
+      throw new errors.InvalidArgumentError(
+        `bearerToken cannot be combined with accessKey, secretKey, or sessionToken.`,
+      );
+    }
     if (params.accessKey && !params.secretKey) {
       throw new errors.InvalidArgumentError(`If specifying access key, secret key must also be provided.`);
     }
@@ -243,6 +251,7 @@ export class Client {
     this.accessKey = params.accessKey;
     this.#secretKey = params.secretKey ?? "";
     this.sessionToken = params.sessionToken;
+    this.bearerToken = params.bearerToken;
     this.pathStyle = params.pathStyle ?? true; // Default path style is true
     this.pathPrefix = pathPrefix ?? "";
     this.defaultBucket = params.bucket;
@@ -341,9 +350,13 @@ export class Client {
       throw new Error(`Unexpected payload on ${method} request.`);
     }
     const sha256sum = await sha256digestHex(payload ?? new Uint8Array());
-    headers.set("x-amz-date", makeDateLong(date));
-    headers.set("x-amz-content-sha256", sha256sum);
-    if (this.accessKey) {
+    if (this.bearerToken) {
+      headers.set("authorization", `Bearer ${this.bearerToken}`);
+    } else {
+      headers.set("x-amz-date", makeDateLong(date));
+      headers.set("x-amz-content-sha256", sha256sum);
+    }
+    if (!this.bearerToken && this.accessKey) {
       if (this.sessionToken) {
         headers.set("x-amz-security-token", this.sessionToken);
       }
